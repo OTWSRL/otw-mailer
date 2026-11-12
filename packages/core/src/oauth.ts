@@ -1,5 +1,5 @@
 import { MailerError } from './errors.ts'
-import { brief, textField } from './http.ts'
+import { clause, networkReason, textField } from './http.ts'
 import type { OAuthTokens, TokenStore } from './types.ts'
 
 /** The services that sign an account in for a mailer: Gmail, Microsoft 365 and Zoho Mail. */
@@ -126,8 +126,18 @@ async function tokenRequest(
     })
     body = await response.json().catch(() => undefined)
   } catch (error) {
-    const code = signal?.aborted ? 'timeout' : 'network'
-    throw new MailerError(code, `Couldn't reach ${label} to sign in.`, { cause: error })
+    if (signal?.aborted) {
+      throw new MailerError('timeout', `${label} didn't answer the sign-in in time.`, {
+        cause: error,
+      })
+    }
+    throw new MailerError(
+      'network',
+      `Couldn't reach ${label} to sign in: ${networkReason(error)}`,
+      {
+        cause: error,
+      },
+    )
   }
   const accessToken = textField(body, 'access_token')
   // Zoho answers 200 with an `error` for a bad code or token.
@@ -135,7 +145,7 @@ async function tokenRequest(
     const said = textField(body, 'error_description') ?? textField(body, 'error') ?? ''
     throw new MailerError(
       'auth',
-      `${label} didn't accept the sign-in${said ? `: ${brief(said)}` : ''}. Connect the account again.`,
+      `${label} didn't accept the sign-in${said ? `: ${clause(said)}` : ''}. Connect the account again.`,
       { status: response.status },
     )
   }

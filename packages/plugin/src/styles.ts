@@ -30,4 +30,5 @@ export const STYLES = `
 .mailer-details td{padding:5px 0;word-break:break-word}
 .mailer-condition{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center}
 .mailer-search{float:right;margin:0 0 8px}
+.mailer-actions{margin:1em 0}
 `

@@ -164,7 +164,7 @@ describe('connecting a Google account', () => {
     expect((await getConnection(harness.db, 'google'))!.auth).toBeNull()
     expect((await listEvents(harness.db, 5)).map((event) => event.message)).toEqual([
       "Google didn't accept the sign-in: invalid_grant. Connect the account again.",
-      "The account wasn't connected: access_denied",
+      'No sign-in came back: access_denied',
     ])
 
     const author = await harness.signIn('author')

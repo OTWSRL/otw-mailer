@@ -110,6 +110,44 @@ describe('exchangeCode', () => {
     expect(error.message).toContain('AADSTS70008: expired')
     expect(error.message).not.toContain('shh')
   })
+
+  it('says why Google couldn’t be reached, from what fetch gives as the cause', async () => {
+    const dns = Object.assign(new Error('getaddrinfo ENOTFOUND oauth2.googleapis.com'), {
+      code: 'ENOTFOUND',
+    })
+    const down: typeof fetch = async () => {
+      throw new TypeError('fetch failed', { cause: dns })
+    }
+    await expect(
+      exchangeCode('google', client, {
+        code: 'c',
+        redirectUri: 'https://site.test/cb',
+        fetch: down,
+      }),
+    ).rejects.toMatchObject({
+      code: 'network',
+      message:
+        "Couldn't reach Google to sign in: fetch failed: getaddrinfo ENOTFOUND oauth2.googleapis.com",
+    })
+  })
+
+  it('says when Google didn’t answer in time', async () => {
+    const hang: typeof fetch = (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init!.signal!.addEventListener('abort', () => reject(init!.signal!.reason))
+      })
+    await expect(
+      exchangeCode('google', client, {
+        code: 'c',
+        redirectUri: 'https://site.test/cb',
+        fetch: hang,
+        signal: AbortSignal.timeout(20),
+      }),
+    ).rejects.toMatchObject({
+      code: 'timeout',
+      message: "Google didn't answer the sign-in in time.",
+    })
+  })
 })
 
 describe('tokenSource', () => {
@@ -165,7 +203,7 @@ describe('tokenSource', () => {
     ).rejects.toMatchObject({
       code: 'auth',
       message:
-        "Google didn't accept the sign-in: Token has been revoked.. Connect the account again.",
+        "Google didn't accept the sign-in: Token has been revoked. Connect the account again.",
     })
   })
 })

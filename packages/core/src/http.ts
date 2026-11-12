@@ -35,6 +35,29 @@ export function brief(value: unknown): string {
   return line.length > MAX_DETAIL ? `${line.slice(0, MAX_DETAIL)}…` : line
 }
 
+/**
+ * Why a request never got an answer. `fetch` says only "fetch failed"; the reason (a name that
+ * didn't resolve, a refused or reset connection, a certificate) is in its `cause`.
+ */
+export function networkReason(error: unknown): string {
+  const parts: string[] = []
+  let current = error
+  for (let depth = 0; current != null && depth < 4; depth++) {
+    const message = current instanceof Error ? current.message : String(current)
+    const code = (current as { code?: unknown }).code
+    const part =
+      typeof code === 'string' && !message.includes(code) ? `${message} (${code})`.trim() : message
+    if (part && !parts.includes(part)) parts.push(part)
+    current = current instanceof Error ? current.cause : undefined
+  }
+  return brief(parts.join(': '))
+}
+
+/** A service's words as the middle of a sentence: one line, without its own full stop. */
+export function clause(value: unknown): string {
+  return brief(value).replace(/[\s.]+$/, '')
+}
+
 function codeFor(status: number): MailerErrorCode {
   if (status === 401 || status === 403) return 'auth'
   // Mailgun answers 420 for its recipients rate limit.
@@ -87,8 +110,7 @@ export async function request(options: HttpRequest): Promise<HttpResponse> {
     if (signal.aborted) {
       throw new MailerError('timeout', `${mailer} didn't answer in time.`, { mailer, cause: error })
     }
-    const reason = error instanceof Error ? error.message : String(error)
-    throw new MailerError('network', `Couldn't reach ${mailer}: ${brief(reason)}`, {
+    throw new MailerError('network', `Couldn't reach ${mailer}: ${networkReason(error)}`, {
       mailer,
       cause: error,
     })

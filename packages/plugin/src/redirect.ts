@@ -6,5 +6,5 @@ import type { PluginContext } from '@otwdesign/sdk'
  */
 export function redirectUri(cms: PluginContext, request?: Request): string {
   const origin = cms.settings.get('site.url') || (request ? new URL(request.url).origin : '')
-  return `${origin}${cms.routes.apiUrl('/oauth/callback')}`
+  return `${origin.replace(/\/+$/, '')}${cms.routes.apiUrl('/oauth/callback')}`
 }

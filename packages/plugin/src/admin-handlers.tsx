@@ -44,6 +44,7 @@ import {
   getEmail,
   isEmailId,
   listEmails,
+  lastEventFor,
   listEvents,
   loadSending,
   moveRoute,
@@ -156,6 +157,8 @@ interface ConnectionData {
   view: ConnectionView
   info: MailerInfo
   oauth: string | undefined
+  /** Why the account didn't connect, when the person just came back without it. */
+  reason: string | undefined
 }
 
 /**
@@ -171,6 +174,8 @@ export function bind(cms: PluginContext, deps: MailerDeps) {
     email: (id: string) => cms.admin.url('mailer.email', { id }),
     tools: () => cms.admin.url('mailer.tools'),
     reports: () => cms.admin.url('mailer.reports'),
+    // Settings › General is core's own page, beside this plugin's section.
+    general: () => cms.admin.url('/').replace(/\/mailer\/?$/, '/settings'),
   }
 
   const viewOf = (connection: StoredConnection, sending: Sending): ConnectionView => {
@@ -250,8 +255,7 @@ export function bind(cms: PluginContext, deps: MailerDeps) {
             test: (id) => `${url.tools()}?connection=${id}#test`,
             setRole: cms.admin.actionUrl('set-role'),
             remove: cms.admin.actionUrl('delete-connection'),
-            // Settings › General is core's own page, beside this plugin's section.
-            general: cms.admin.url('/').replace(/\/mailer\/?$/, '/settings'),
+            general: url.general(),
           }}
         />
       ),
@@ -286,7 +290,10 @@ export function bind(cms: PluginContext, deps: MailerDeps) {
         const connection = sending.connections.find((item) => item.id === params.id)
         const info = connection && mailerInfo(connection.mailer)
         if (!connection || !info) return null
-        return { view: viewOf(connection, sending), info, oauth: first(searchParams.oauth) }
+        const oauth = first(searchParams.oauth)
+        const reason =
+          oauth === 'refused' ? (await lastEventFor(cms.db, connection.id))?.message : undefined
+        return { view: viewOf(connection, sending), info, oauth, reason }
       },
       component: (data: ConnectionData) => {
         const { view, info } = data
@@ -299,7 +306,9 @@ export function bind(cms: PluginContext, deps: MailerDeps) {
             : data.oauth === 'refused'
               ? ({
                   type: 'error',
-                  message: 'The account wasn’t connected. Tools › Debug events has the reason.',
+                  message: data.reason
+                    ? `The account wasn’t connected. ${/[.!?]$/.test(data.reason) ? data.reason : `${data.reason}.`}`
+                    : 'The account wasn’t connected. Tools › Debug events has the reason.',
                 } as const)
               : data.oauth === 'not-ready'
                 ? ({
@@ -321,6 +330,7 @@ export function bind(cms: PluginContext, deps: MailerDeps) {
                 : undefined,
               disconnect: cms.admin.actionUrl('disconnect'),
               redirectUri: info.oauth ? redirectUri(cms) : undefined,
+              siteAddress: cms.settings.get('site.url') ? undefined : url.general(),
             }}
           />
         )

@@ -7,7 +7,7 @@ import { pageOf, parseConditions, parseConfig } from '../src/admin-handlers.tsx'
 import { csvCell } from '../src/routes.ts'
 import { previewDocument } from '../src/screens.tsx'
 import { emails } from '../src/schema.ts'
-import { getConnection, listEmails, listEvents, loadSending } from '../src/store.ts'
+import { addEvent, getConnection, listEmails, listEvents, loadSending } from '../src/store.ts'
 import { mailerInfo } from '@otwdesign/mailer/mailers'
 import { act, bootMailer, fakeFetch, MESSAGE, renderAdmin, resend } from './fixtures.ts'
 
@@ -204,6 +204,92 @@ describe('connections', () => {
     })
     expect(fresh).toContain('name="config.domain"')
     expect(fresh).not.toContain('name="config.apiKey"')
+  })
+})
+
+describe('connecting an account', () => {
+  const text = (html: string) => html.replaceAll('&#x27;', "'")
+
+  it('says on the connection why its account wasn’t connected', async () => {
+    const harness = await bootMailer({
+      env: { MAILER_GOOGLE_CLIENT_SECRET: 'shh', MAILER_OTHER_CLIENT_SECRET: 'shh' },
+      connections: [
+        { id: 'google', mailer: 'gmail', config: { clientId: 'cid' } },
+        { id: 'other', mailer: 'gmail', config: { clientId: 'cid' } },
+      ],
+    })
+    const { user } = await harness.signIn()
+    await addEvent(
+      harness.db,
+      'error',
+      "Couldn't reach Google to sign in: fetch failed: read ECONNRESET",
+      { connection: 'google' },
+    )
+    await addEvent(harness.db, 'error', 'Not this connection.', { connection: 'other' })
+
+    const page = text(
+      await renderAdmin(harness, '/admin/mailer/connections/google', user, { oauth: 'refused' }),
+    )
+    expect(page).toContain(
+      "The account wasn’t connected. Couldn't reach Google to sign in: fetch failed: read ECONNRESET.",
+    )
+    expect(page).not.toContain('Not this connection.')
+    const quiet = await renderAdmin(harness, '/admin/mailer/connections/google', user)
+    expect(quiet).not.toContain('ECONNRESET')
+  })
+
+  it('shows the whole redirect address once the site’s address is set', async () => {
+    const connections = [{ id: 'google', mailer: 'gmail' as const, config: { clientId: 'cid' } }]
+    const bare = await bootMailer({ connections })
+    const page = await renderAdmin(
+      bare,
+      '/admin/mailer/connections/google',
+      (await bare.signIn()).user,
+    )
+    expect(page).toContain(
+      'this site’s address followed by <code>/api/p/mailer/oauth/callback</code>',
+    )
+    expect(page).toContain('href="/admin/settings"')
+
+    const set = await bootMailer({ connections, settings: { 'site.url': 'https://shop.example' } })
+    expect(
+      await renderAdmin(set, '/admin/mailer/connections/google', (await set.signIn()).user),
+    ).toContain('<code>https://shop.example/api/p/mailer/oauth/callback</code>')
+  })
+})
+
+describe('markup', () => {
+  // A browser closes a <p> at a <form>, so React's markup and the page's differ and React
+  // throws the page away to draw it again.
+  const formInParagraph = /<p(?:\s[^>]*)?>(?:(?!<\/p>).)*<form/s
+
+  it('never puts a form inside a paragraph', async () => {
+    const main = resend('main')
+    const harness = await bootMailer({
+      env: { ...main.env, MAILER_GOOGLE_CLIENT_SECRET: 'shh', MAILER_GOOGLE_REFRESH_TOKEN: 'rt' },
+      fetch: fakeFetch(() => Response.json({ id: 'ok' })).fetch,
+      connections: [
+        main.connection,
+        { id: 'google', mailer: 'gmail', config: { clientId: 'cid' } },
+      ],
+      settings: { 'mailer.log_content': true },
+    })
+    const { user } = await harness.signIn()
+    await harness.kernel.mail.send(MESSAGE)
+    await addEvent(harness.db, 'error', 'Something failed.', { connection: 'main' })
+    const email = (await listEmails(harness.db, { page: 1, perPage: 1 })).rows[0]!
+    for (const path of [
+      '/admin/mailer',
+      '/admin/mailer/connections/google',
+      '/admin/mailer/connections/main',
+      '/admin/mailer/routing',
+      '/admin/mailer/log',
+      `/admin/mailer/log/${email.id}`,
+      '/admin/mailer/reports',
+      '/admin/mailer/tools',
+    ]) {
+      expect(await renderAdmin(harness, path, user), path).not.toMatch(formInParagraph)
+    }
   })
 })
 

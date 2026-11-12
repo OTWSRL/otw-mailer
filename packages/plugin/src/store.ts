@@ -470,6 +470,17 @@ export async function listEvents(db: Database, limit: number): Promise<LoggedEve
   return db.select().from(events).orderBy(desc(events.id)).limit(limit)
 }
 
+/** A connection's latest event: why its account didn't connect, when someone just tried. */
+export async function lastEventFor(db: Database, connection: string): Promise<LoggedEvent | null> {
+  const [event] = await db
+    .select()
+    .from(events)
+    .where(sql`${events.context}->>'connection' = ${connection}`)
+    .orderBy(desc(events.id))
+    .limit(1)
+  return event ?? null
+}
+
 export async function clearEvents(db: Database): Promise<void> {
   await db.delete(events)
 }

@@ -311,6 +311,8 @@ export function ConnectionForm({
     connect?: string
     disconnect?: string
     redirectUri?: string
+    /** Settings › General, when it has no Site address: the redirect URI is then only a path. */
+    siteAddress?: string
   }
 }) {
   const connection = view?.connection
@@ -397,13 +399,20 @@ export function ConnectionForm({
             )}{' '}
             {mailer.label} sends as an account you sign in to.
           </p>
-          {urls.redirectUri && (
-            <p>
-              Register this address as the redirect URI of your application:{' '}
-              <code>{urls.redirectUri}</code>
-            </p>
-          )}
-          <p>
+          {urls.redirectUri &&
+            (urls.siteAddress ? (
+              <p>
+                Register this site’s address followed by <code>{urls.redirectUri}</code> as the
+                redirect URI of your application. Set <a href={urls.siteAddress}>Site address</a> in
+                Settings › General to see the whole address here.
+              </p>
+            ) : (
+              <p>
+                Register this address as the redirect URI of your application:{' '}
+                <code>{urls.redirectUri}</code>
+              </p>
+            ))}
+          <div className="mailer-actions">
             {urls.connect ? (
               <ButtonLink variant={view.connected ? 'secondary' : 'primary'} href={urls.connect}>
                 {view.connected ? 'Connect another account' : 'Connect account'}
@@ -420,7 +429,7 @@ export function ConnectionForm({
                 Disconnect
               </FormButton>
             )}
-          </p>
+          </div>
         </Postbox>
       )}
       <p>
@@ -880,15 +889,15 @@ export function EmailScreen({
         side={
           <Postbox id="mailer-email-actions" title="Actions">
             {hasContent ? (
-              <p>
+              <div className="mailer-actions">
                 <FormButton action={urls.resend} fields={{ id: email.id }} variant="primary">
                   Resend
                 </FormButton>
-              </p>
+              </div>
             ) : (
               <p className="description">It can’t be sent again: its content wasn’t kept.</p>
             )}
-            <p>
+            <div className="mailer-actions">
               <FormButton
                 action={urls.remove}
                 fields={{ ids: email.id, what: 'selected', back: 'list' }}
@@ -896,7 +905,7 @@ export function EmailScreen({
               >
                 Delete
               </FormButton>
-            </p>
+            </div>
             <p>
               <a href={urls.list}>← Back to the log</a>
             </p>
@@ -1172,9 +1181,9 @@ export function ToolsScreen({
         ]}
       />
       {events.length > 0 && (
-        <p>
+        <div className="mailer-actions">
           <FormButton action={urls.clearEvents}>Clear events</FormButton>
-        </p>
+        </div>
       )}
     </>
   )

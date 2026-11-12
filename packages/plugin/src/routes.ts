@@ -176,8 +176,8 @@ async function oauthCallback(
   const oauth = connection && oauthClient(connection, deps)
   const code = params.get('code')
   if (!connection || !oauth || !code) {
-    const reason = params.get('error_description') ?? params.get('error') ?? 'No code came back.'
-    await addEvent(cms.db, 'error', `The account wasn't connected: ${reason}`, {
+    const said = params.get('error_description') ?? params.get('error')
+    await addEvent(cms.db, 'error', `No sign-in came back${said ? `: ${said}` : '.'}`, {
       connection: state.connection,
     })
     return redirect(connectionPage(cms, state.connection, 'refused'))

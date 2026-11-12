@@ -721,10 +721,17 @@ describe('what services answer', () => {
     const down = createMailer({
       connections: [{ id: 'main', mailer: 'resend', config: { apiKey: 'k' } }],
       fetch: async () => {
-        throw new TypeError('fetch failed')
+        const refused = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:443'), {
+          code: 'ECONNREFUSED',
+        })
+        throw new TypeError('fetch failed', { cause: refused })
       },
     })
-    await expect(down.send(FULL)).rejects.toMatchObject({ code: 'network', retryable: true })
+    await expect(down.send(FULL)).rejects.toMatchObject({
+      code: 'network',
+      retryable: true,
+      message: "Couldn't reach Resend: fetch failed: connect ECONNREFUSED 127.0.0.1:443",
+    })
 
     const slow = createMailer({
       connections: [{ id: 'main', mailer: 'resend', config: { apiKey: 'k' } }],
