@@ -86,9 +86,19 @@ await cms.services.get('mailer').send({
 
 ## Cost
 
-The plugin loads nothing until the site sends an email: the engine, the mailer in use and the
-log all load with the first one. It adds under 0.1 ms to a boot and nothing to a page. Sending an
-email reads the connections (two queries) and writes the log (one).
+Measured on a production build with one Gmail connection, against the same site without the
+plugin:
+
+- **Browsers:** nothing. What visitors and the admin download is the same, byte for byte.
+- **Server start:** 29 KB more code loaded and 0.3 MB more memory. Mailer's admin screens load
+  on the first admin visit, never at start.
+- **Pages:** nothing, on any page that sends no email.
+- **Each email:** one request to the mail service, three queries (connections, options, the log
+  row) and about 1 ms of the server's own time. Only the mailer in use loads: with Gmail,
+  Nodemailer and the other 16 services' code never do.
+- **Disk:** 3.1 MB in `node_modules` (Nodemailer is 2.2 MB of it), 0.8 MB more server JavaScript
+  in the build.
+- **Database:** about 0.7 KB per logged email without its content.
 
 ## License
 

@@ -3,6 +3,7 @@ import { mailerInfo } from '@otwdesign/mailer/mailers'
 import { authorizeUrl, exchangeCode, type OAuthClient } from '@otwdesign/mailer/oauth'
 import type { ApiContext, PluginContext, User } from '@otwdesign/sdk'
 import type { MailerDeps } from './deps.ts'
+import { redirectUri } from './redirect.ts'
 import { resolveConfig } from './secrets.ts'
 import {
   addEvent,
@@ -116,12 +117,6 @@ export function openState(value: string | null, secret: string, now = Date.now()
   } catch {
     return null
   }
-}
-
-/** Where the service sends the person back: the address to register with it. */
-export function redirectUri(cms: PluginContext, request?: Request): string {
-  const origin = cms.settings.get('site.url') || (request ? new URL(request.url).origin : '')
-  return `${origin}${cms.routes.apiUrl('/oauth/callback')}`
 }
 
 function oauthClient(
