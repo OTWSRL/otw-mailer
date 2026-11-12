@@ -72,6 +72,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
         working-directory: nextjs-cms
       - run: pnpm install --frozen-lockfile
+      # The packed site's admin is opened in a browser.
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm packed
 
   # A CMS site with the plugin, in a browser, sending to an SMTP server the tests run.
