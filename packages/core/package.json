@@ -1,0 +1,79 @@
+{
+  "name": "@otwdesign/mailer",
+  "version": "1.0.0",
+  "description": "Send email from any Node app through SMTP or 17 email services, with a backup connection and routing rules. Only the mailer in use is loaded.",
+  "license": "Apache-2.0",
+  "author": "OTW SRL",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OTWSRL/otw-mailer.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/OTWSRL/otw-mailer/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/OTWSRL/otw-mailer/issues"
+  },
+  "keywords": [
+    "email",
+    "smtp",
+    "mailer",
+    "sendgrid",
+    "mailgun",
+    "postmark",
+    "amazon-ses",
+    "resend",
+    "brevo",
+    "gmail"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.18"
+  },
+  "exports": {
+    ".": {
+      "@otwdesign/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./mailers": {
+      "@otwdesign/source": "./src/registry.ts",
+      "types": "./dist/registry.d.ts",
+      "default": "./dist/registry.js"
+    },
+    "./oauth": {
+      "@otwdesign/source": "./src/oauth.ts",
+      "types": "./dist/oauth.d.ts",
+      "default": "./dist/oauth.js"
+    },
+    "./dns": {
+      "@otwdesign/source": "./src/dns.ts",
+      "types": "./dist/dns.d.ts",
+      "default": "./dist/dns.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "nodemailer": "^10.5.0"
+  },
+  "devDependencies": {
+    "@aws-crypto/sha256-js": "^5.2.0",
+    "@smithy/signature-v4": "^5.7.5",
+    "@types/mailparser": "^3.9.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/smtp-server": "^3.5.13",
+    "mailparser": "^3.14.3",
+    "smtp-server": "^3.21.4"
+  }
+}

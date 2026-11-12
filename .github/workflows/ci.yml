@@ -1,0 +1,107 @@
+name: CI
+
+# `pnpm test:all` runs everything this workflow runs, on a developer's machine.
+#
+# The CMS plugin's tests and test site link the CMS's packages from a checkout next to this repo
+# (../nextjs-cms), as on a developer's machine, so each job checks out both.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: otw-mailer
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['22.18', '24']
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: otw-mailer
+      - uses: actions/checkout@v5
+        with:
+          repository: OTWSRL/otw-cms
+          path: nextjs-cms
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: otw-mailer/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+          cache-dependency-path: '*/pnpm-lock.yaml'
+      - run: pnpm install --frozen-lockfile
+        working-directory: nextjs-cms
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm build
+
+  # The two packages packed as npm would publish them: the engine installed into a plain Node
+  # project with npm, imported, type-checked and used; the plugin's tarball checked for what it
+  # ships and depends on.
+  packed:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: otw-mailer
+      - uses: actions/checkout@v5
+        with:
+          repository: OTWSRL/otw-cms
+          path: nextjs-cms
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: otw-mailer/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: '*/pnpm-lock.yaml'
+      - run: pnpm install --frozen-lockfile
+        working-directory: nextjs-cms
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm packed
+
+  # A CMS site with the plugin, in a browser, sending to an SMTP server the tests run.
+  e2e:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: otw-mailer
+      - uses: actions/checkout@v5
+        with:
+          repository: OTWSRL/otw-cms
+          path: nextjs-cms
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: otw-mailer/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: '*/pnpm-lock.yaml'
+      - run: pnpm install --frozen-lockfile
+        working-directory: nextjs-cms
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: otw-mailer/examples/*/test-results/
+          retention-days: 7
