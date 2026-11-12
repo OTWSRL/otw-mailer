@@ -89,7 +89,8 @@ await cms.services.get('mailer').send({
 Measured on a production build with one Gmail connection, against the same site without the
 plugin:
 
-- **Browsers:** nothing. What visitors and the admin download is the same, byte for byte.
+- **Browsers:** scripts and stylesheets are the same, byte for byte, and visitors' pages are
+  unchanged. Admin pages carry Mailer's menu: about 3.6 KB more HTML.
 - **Server start:** 29 KB more code loaded and 0.3 MB more memory. Mailer's admin screens load
   on the first admin visit, never at start.
 - **Pages:** nothing, on any page that sends no email.
