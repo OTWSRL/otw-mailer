@@ -6,9 +6,9 @@ import {
   type PluginContext,
   type PluginDefinition,
 } from '@otwdesign/sdk'
-import type * as Handlers from './admin-handlers.tsx'
-import { depsOf, type MailerDeps } from './deps.ts'
-import mailer from './index.ts'
+import type * as Handlers from './admin-handlers'
+import { depsOf, type MailerDeps } from './deps'
+import mailer from './index'
 
 const CAPABILITY = 'mailer.manage'
 
@@ -22,8 +22,7 @@ type Bound = ReturnType<typeof Handlers.bind>
  */
 function register(cms: PluginContext, deps: MailerDeps): void {
   let bound: Promise<Bound> | undefined
-  const impl = () =>
-    (bound ??= import('./admin-handlers.tsx').then((module) => module.bind(cms, deps)))
+  const impl = () => (bound ??= import('./admin-handlers').then((module) => module.bind(cms, deps)))
   const action = (
     name: string,
     run: (bound: Bound, context: AdminActionContext) => Promise<AdminActionResult | void>,

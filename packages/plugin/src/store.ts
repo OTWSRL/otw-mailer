@@ -1,7 +1,7 @@
 import type { Attempt, Condition, MailerId } from '@otwdesign/mailer'
 import type { Database } from '@otwdesign/sdk'
 import { and, asc, desc, eq, gte, ilike, inArray, lt, or, sql } from 'drizzle-orm'
-import { connections, emails, events, options, type Addresses, type StoredRoute } from './schema.ts'
+import { connections, emails, events, options, type Addresses, type StoredRoute } from './schema'
 
 /** A connection as stored: a mailer and its settings, without its secrets. */
 export interface StoredConnection {

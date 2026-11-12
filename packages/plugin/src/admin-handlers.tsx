@@ -15,8 +15,8 @@ import {
   type SearchParams,
   type User,
 } from '@otwdesign/sdk'
-import type { MailerDeps } from './deps.ts'
-import { redirectUri } from './redirect.ts'
+import type { MailerDeps } from './deps'
+import { redirectUri } from './redirect'
 import {
   ConnectionForm,
   ConnectionsScreen,
@@ -30,8 +30,8 @@ import {
   RoutingScreen,
   ToolsScreen,
   type ConnectionView,
-} from './screens.tsx'
-import { CONNECTION_ID, resolveConfig, secretStatus, storedFields } from './secrets.ts'
+} from './screens'
+import { CONNECTION_ID, resolveConfig, secretStatus, storedFields } from './secrets'
 import {
   addRoute,
   clearEvents,
@@ -58,8 +58,8 @@ import {
   type LoggedEvent,
   type Sending,
   type StoredConnection,
-} from './store.ts'
-import { unseal } from './tokens.ts'
+} from './store'
+import { unseal } from './tokens'
 
 const CAPABILITY = 'mailer.manage'
 const PER_PAGE = 25

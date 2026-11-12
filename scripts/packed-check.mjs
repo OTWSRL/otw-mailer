@@ -1,16 +1,29 @@
 // Packs the two packages as npm would publish them and checks what a user gets: the engine
-// installed with npm into a plain Node project (imported, type-checked and used), and the
-// plugin's tarball for what it ships and depends on.
-import { execFileSync } from 'node:child_process'
+// installed with npm into a plain Node project (imported, type-checked and used), the plugin's
+// tarball for what it ships and depends on, and the plugin in an OTW CMS site made by
+// create-otw-cms from npm (installed, type-checked, built, run and its admin opened).
+import { execFileSync, spawn } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { setTimeout as sleep } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
+import { chromium } from '@playwright/test'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const work = mkdtempSync(join(tmpdir(), 'otw-mailer-packed-'))
-const run = (command, args, cwd) =>
-  execFileSync(command, args, { cwd, stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8' })
+const run = (command, args, cwd, env = {}) =>
+  execFileSync(command, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    stdio: ['ignore', 'pipe', 'inherit'],
+    encoding: 'utf8',
+  })
+/** Runs a step whose own output is worth seeing, such as an install or a build. */
+const show = (command, args, cwd) => execFileSync(command, args, { cwd, stdio: 'inherit' })
+const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'))
+const writeJson = (file, value) => writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`)
 
 function pack(name) {
   const into = join(work, 'tarballs')
@@ -24,6 +37,31 @@ function pack(name) {
 
 function assert(condition, message) {
   if (!condition) throw new Error(message)
+}
+
+/** A port nothing listens on. */
+function freePort() {
+  return new Promise((done) => {
+    const probe = createServer().listen(0, '127.0.0.1', () => {
+      const { port } = probe.address()
+      probe.close(() => done(port))
+    })
+  })
+}
+
+/** Waits for a server that is starting to answer, and fails if it stops instead. */
+async function until(url, server, seconds = 120) {
+  for (let waited = 0; waited < seconds; waited++) {
+    if (server.exitCode !== null) throw new Error(`The site stopped (exit ${server.exitCode})`)
+    // Refused until the server listens: that is what we're waiting out.
+    const answered = await fetch(url).then(
+      (response) => response.ok,
+      () => false,
+    )
+    if (answered) return
+    await sleep(1000)
+  }
+  throw new Error(`${url} didn't answer within ${seconds} s`)
 }
 
 try {
@@ -137,6 +175,71 @@ console.log('The packed engine sends.')
     "The engine's tarball ships its tests",
   )
   console.log('The packed plugin ships its source and depends on the released engine.')
+
+  // ── The plugin, in an OTW CMS site from npm ────────────────────────────────
+  // The plugin ships its TypeScript source, which a site type-checks and bundles with its own
+  // compiler settings, as create-otw-cms wrote them: not this repo's. The site is made with the
+  // oldest CMS the plugin's peer ranges allow.
+  const cms = manifest.peerDependencies['@otwdesign/sdk'].replace(/^\^/, '')
+  const site = join(work, 'site')
+  run('npx', ['-y', `create-otw-cms@${cms}`, site, '--no-install'], work, {
+    npm_config_user_agent: 'npm/11',
+  })
+  const siteManifest = readJson(join(site, 'package.json'))
+  siteManifest.dependencies['@otwdesign/plugin-mailer'] = `file:${plugin}`
+  siteManifest.overrides = { ...siteManifest.overrides, '@otwdesign/mailer': `file:${engine}` }
+  writeJson(join(site, 'package.json'), siteManifest)
+  const config = readJson(join(site, 'cms.config.json'))
+  writeJson(join(site, 'cms.config.json'), {
+    ...config,
+    plugins: [...(config.plugins ?? []), '@otwdesign/plugin-mailer'],
+  })
+  show('npm', ['install', '--no-audit', '--no-fund'], site)
+  show('npm', ['run', 'typecheck'], site)
+  show('npm', ['run', 'build'], site)
+
+  const port = await freePort()
+  // In its own process group, so stopping it stops what npx started (next start).
+  const server = spawn('npx', ['next', 'start', '-p', String(port)], {
+    cwd: site,
+    env: { ...process.env, CMS_DATA_DIR: join(work, 'site-data'), DATABASE_URL: '' },
+    detached: true,
+    stdio: ['ignore', 'ignore', 'inherit'],
+  })
+  try {
+    // localhost, not 127.0.0.1: the admin's forms check the origin they're posted from.
+    const base = `http://localhost:${port}`
+    await until(base, server)
+    const browser = await chromium.launch()
+    try {
+      const page = await browser.newPage()
+      await page.goto(`${base}/admin`)
+      await page.waitForURL(/\/admin\/setup/)
+      await page.getByLabel('Name').fill('Packed Admin')
+      await page.getByLabel('Email').fill('packed@example.com')
+      await page.getByLabel('Password').fill('a strong packed password')
+      await page.getByRole('button', { name: 'Create administrator' }).click()
+      await page.getByRole('status').filter({ hasText: 'Your site is ready.' }).waitFor()
+      // The dashboard's box and the Mailer screens, which load on first use.
+      await page.goto(`${base}/admin`)
+      await page.getByRole('link', { name: 'Set up a connection' }).waitFor()
+      await page.goto(`${base}/admin/mailer`)
+      await page.getByText('No connection yet').waitFor()
+      // A connection saved: the plugin's tables are there, and its forms post.
+      await page.goto(`${base}/admin/mailer/connections/new`)
+      await page.getByRole('link', { name: /^Other SMTP/ }).click()
+      await page.getByLabel('Name', { exact: true }).fill('Packed')
+      await page.getByLabel('ID', { exact: true }).fill('main')
+      await page.getByLabel('SMTP host').fill('127.0.0.1')
+      await page.getByRole('button', { name: 'Add Connection' }).click()
+      await page.getByRole('status').filter({ hasText: 'Connection added.' }).waitFor()
+    } finally {
+      await browser.close()
+    }
+  } finally {
+    process.kill(-server.pid, 'SIGTERM')
+  }
+  console.log(`The packed plugin type-checks, builds and runs in a create-otw-cms@${cms} site.`)
 } finally {
   rmSync(work, { recursive: true, force: true })
 }

@@ -1,5 +1,5 @@
 import type { PluginDefinition } from '@otwdesign/sdk'
-import type { Env } from './secrets.ts'
+import type { Env } from './secrets'
 
 /** What the plugin reaches outside the CMS: the environment, and the network. */
 export interface MailerDeps {

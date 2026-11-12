@@ -14,9 +14,9 @@ import {
   type TokenStore,
 } from '@otwdesign/mailer'
 import type { OutgoingMail, PluginContext } from '@otwdesign/sdk'
-import { createAlerts } from './alerts.ts'
-import type { MailerDeps } from './deps.ts'
-import { envName, resolveConfig } from './secrets.ts'
+import { createAlerts } from './alerts'
+import type { MailerDeps } from './deps'
+import { envName, resolveConfig } from './secrets'
 import {
   addEvent,
   getConnection,
@@ -28,8 +28,8 @@ import {
   type EmailRecord,
   type Sending,
   type StoredConnection,
-} from './store.ts'
-import { seal, unseal } from './tokens.ts'
+} from './store'
+import { seal, unseal } from './tokens'
 
 /** How one email is sent. */
 export interface DispatchOptions {

@@ -44,4 +44,23 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // The plugin ships its TypeScript source, which a site compiles with its own settings, as
+    // create-otw-cms wrote them: those don't allow importing a .ts file by its extension.
+    files: ['packages/plugin/src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^\\.{1,2}/.*\\.tsx?$',
+              message:
+                'Import without the extension: a site compiling this source may not allow .ts imports.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 )

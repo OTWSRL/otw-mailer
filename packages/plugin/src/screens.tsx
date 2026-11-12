@@ -16,10 +16,10 @@ import type { DomainCheck, Finding } from '@otwdesign/mailer/dns'
 import { CONDITION_FIELDS, CONDITION_OPERATORS } from '@otwdesign/mailer'
 import { MAILERS, mailerInfo, type MailerField, type MailerInfo } from '@otwdesign/mailer/mailers'
 import type { ReactNode } from 'react'
-import type { StoredRoute } from './schema.ts'
-import { storedFields, type SecretStatus } from './secrets.ts'
-import type { DayStats, LoggedEmail, LoggedEvent, Sending, StoredConnection } from './store.ts'
-import { STYLES } from './styles.ts'
+import type { StoredRoute } from './schema'
+import { storedFields, type SecretStatus } from './secrets'
+import type { DayStats, LoggedEmail, LoggedEvent, Sending, StoredConnection } from './store'
+import { STYLES } from './styles'
 
 /** The plugin's own styles, once per screen. */
 export function Styles() {

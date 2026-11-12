@@ -1,8 +1,8 @@
 import type { Delivery, Message } from '@otwdesign/mailer'
 import { definePlugin, type PluginContext, type PluginDefinition } from '@otwdesign/sdk'
-import { registerDeps, type MailerDeps } from './deps.ts'
-import { migrations } from './migrations.ts'
-import type { Pipeline } from './pipeline.ts'
+import { registerDeps, type MailerDeps } from './deps'
+import { migrations } from './migrations'
+import type { Pipeline } from './pipeline'
 
 /** What the plugin offers other plugins: email with everything a message can carry. */
 export interface MailerService {
@@ -79,7 +79,7 @@ function setup(cms: PluginContext, deps: MailerDeps): void {
   // site that sends none boots as fast as without the plugin, and pays nothing per page.
   let pipeline: Promise<Pipeline> | undefined
   const load = () =>
-    (pipeline ??= import('./pipeline.ts').then((module) => module.createPipeline(cms, deps)))
+    (pipeline ??= import('./pipeline').then((module) => module.createPipeline(cms, deps)))
 
   cms.mail.transport({ send: async (mail) => (await load()).deliver(mail) })
   cms.services.provide('mailer', {
@@ -91,7 +91,7 @@ function setup(cms: PluginContext, deps: MailerDeps): void {
       method,
       path,
       handler: async (request, context) =>
-        (await import('./routes.ts')).handle(cms, deps, path, request, context),
+        (await import('./routes')).handle(cms, deps, path, request, context),
     })
   }
 }

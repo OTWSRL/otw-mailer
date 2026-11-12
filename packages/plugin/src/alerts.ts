@@ -1,7 +1,7 @@
 import type { Mailer } from '@otwdesign/mailer'
 import type { PluginContext } from '@otwdesign/sdk'
-import type { MailerDeps } from './deps.ts'
-import { addEvent } from './store.ts'
+import type { MailerDeps } from './deps'
+import { addEvent } from './store'
 
 /** An email that failed, as an alert reports it. Never its body or its recipients. */
 export interface FailureReport {

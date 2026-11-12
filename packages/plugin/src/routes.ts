@@ -2,9 +2,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { mailerInfo } from '@otwdesign/mailer/mailers'
 import { authorizeUrl, exchangeCode, type OAuthClient } from '@otwdesign/mailer/oauth'
 import type { ApiContext, PluginContext, User } from '@otwdesign/sdk'
-import type { MailerDeps } from './deps.ts'
-import { redirectUri } from './redirect.ts'
-import { resolveConfig } from './secrets.ts'
+import type { MailerDeps } from './deps'
+import { redirectUri } from './redirect'
+import { resolveConfig } from './secrets'
 import {
   addEvent,
   exportEmails,
@@ -12,8 +12,8 @@ import {
   pluginSecret,
   setAuth,
   type StoredConnection,
-} from './store.ts'
-import { seal } from './tokens.ts'
+} from './store'
+import { seal } from './tokens'
 
 const EXPORT_LIMIT = 10_000
 /** How long a person has to finish signing in at the service. */
