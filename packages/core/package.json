@@ -1,6 +1,6 @@
 {
   "name": "@otwdesign/mailer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Send email from any Node app through SMTP or 17 email services, with a backup connection and routing rules. Only the mailer in use is loaded.",
   "license": "Apache-2.0",
   "author": "OTW SRL",

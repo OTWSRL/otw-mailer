@@ -1,6 +1,6 @@
 {
   "name": "@otwdesign/plugin-mailer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Email delivery for OTW CMS: SMTP or 17 email services, a backup connection, routing rules, an email log, failure alerts and reports.",
   "license": "Apache-2.0",
   "author": "OTW SRL",

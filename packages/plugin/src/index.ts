@@ -104,7 +104,7 @@ export function createMailerPlugin(deps: Partial<MailerDeps> = {}): PluginDefini
   const resolved: MailerDeps = { env: deps.env ?? process.env, fetch: deps.fetch }
   const plugin = definePlugin({
     id: 'mailer',
-    version: '1.0.1',
+    version: '1.0.2',
     name: 'Mailer',
     icon: ICON,
     description:
