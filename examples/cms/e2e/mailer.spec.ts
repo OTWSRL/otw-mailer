@@ -59,6 +59,13 @@ const menu = (page: Page, label: string) =>
     .getByRole('navigation', { name: 'Main menu' })
     .getByRole('link', { name: label, exact: true })
 
+/** One of Mailer's own pages, in its submenu: the CMS has a Tools section of its own too. */
+const submenu = (page: Page, label: string) =>
+  page
+    .getByRole('navigation', { name: 'Main menu' })
+    .getByRole('list', { name: 'Mailer' })
+    .getByRole('link', { name: label, exact: true })
+
 /** The next email to arrive after `action`. */
 async function arrives(action: () => Promise<unknown>) {
   const before = inbox.length
@@ -110,7 +117,7 @@ test('Mailer says what’s missing until a connection is added', async ({ page }
   await menu(page, 'Mailer').click()
   await expect(page).toHaveURL('/admin/mailer')
   await expect(page.getByText('No connection yet')).toBeVisible()
-  await menu(page, 'Tools').click()
+  await submenu(page, 'Tools').click()
   await expect(page.getByRole('link', { name: 'Add a connection' })).toBeVisible()
   // The dashboard points here too.
   await page.goto('/admin')
@@ -171,7 +178,7 @@ test('the site’s own email goes out through the plugin, and its link works', a
 test('the log lists every email, without its content unless that’s kept', async ({ page }) => {
   await signIn(page)
   await menu(page, 'Mailer').click()
-  await menu(page, 'Email Log').click()
+  await submenu(page, 'Email Log').click()
   const table = page.getByRole('table')
   await expect(table.getByRole('link', { name: /Password reset/ })).toBeVisible()
   await expect(table.getByRole('row').filter({ hasText: 'Test email from' })).toHaveCount(2)
